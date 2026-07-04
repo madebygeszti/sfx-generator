@@ -1239,6 +1239,8 @@ CATEGORIES.forEach((c) => {
 });
 
 let audioCtx = null;
+let mediaDest = null;
+let mediaEl = null;
 let cachedBuffer = null;
 let dirty = true;
 let rendering = false;
@@ -1312,13 +1314,24 @@ function drawWave(buffer) {
 
 async function play() {
   const AC = window.AudioContext || window.webkitAudioContext;
-  if (!audioCtx) audioCtx = new AC();
+  if (!audioCtx) {
+    audioCtx = new AC();
+    // iOS Safari eltérő hangcsatorna-kategóriát ("ambient") használ a Web Audio
+    // API-hoz, amit a néma kapcsoló elnémít. Egy rejtett <audio> elemen keresztül
+    // kivezetve a jelet a "playback" kategóriát kapja, ami nem néma-érzékeny.
+    mediaDest = audioCtx.createMediaStreamDestination();
+    mediaEl = new Audio();
+    mediaEl.srcObject = mediaDest.stream;
+    mediaEl.setAttribute('playsinline', '');
+    mediaEl.play().catch(() => {});
+  }
   if (audioCtx.state === 'suspended') await audioCtx.resume();
+  if (mediaEl.paused) mediaEl.play().catch(() => {});
   if (currentSource) { try { currentSource.stop(); } catch (e) {} }
   const buf = await ensureBuffer();
   const src = audioCtx.createBufferSource();
   src.buffer = buf;
-  src.connect(audioCtx.destination);
+  src.connect(mediaDest);
   currentSource = src;
   src.start();
 }
