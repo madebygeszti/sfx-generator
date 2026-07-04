@@ -87,6 +87,23 @@
     align-items: center; justify-content: center;
     color: #4d4536; font-size: 12px; letter-spacing: 0.1em; text-align: center; padding: 0 12px;
   }
+  .wave-center-line {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: #ffffff; opacity: 0.5; pointer-events: none;
+  }
+  .wave-ruler {
+    position: relative; height: 16px; margin: 4px 0 20px;
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 10px; color: #d8d2c8; visibility: hidden;
+  }
+  .wave-ruler.visible { visibility: visible; }
+  .wave-ruler .tick {
+    position: absolute; top: 0; display: flex; flex-direction: column; align-items: center;
+    transform: translateX(-50%);
+  }
+  .wave-ruler .tick::before {
+    content: ""; width: 1px; height: 4px; background: #ffffff88; margin-bottom: 2px;
+  }
   .sliders { display: grid; gap: 16px; margin-bottom: 24px; }
   .slider-head {
     display: flex; justify-content: space-between;
@@ -131,8 +148,10 @@
     <div class="variants" id="variants"></div>
     <div class="wave">
       <canvas id="waveCanvas"></canvas>
+      <div class="wave-center-line" aria-hidden="true"></div>
       <div class="placeholder" id="wavePh">LEJÁTSZÁS UTÁN ITT JELENIK MEG A HULLÁMFORMA</div>
     </div>
+    <div class="wave-ruler" id="waveRuler"></div>
     <div class="sliders" id="sliders"></div>
     <div class="actions">
       <button class="btn btn-play" id="btnPlay">▶ Lejátszás</button>
@@ -1285,6 +1304,7 @@ function drawWave(buffer) {
   if (!buffer) {
     el('wavePh').textContent = 'LEJÁTSZÁS UTÁN ITT JELENIK MEG A HULLÁMFORMA';
     el('wavePh').style.display = 'flex';
+    el('waveRuler').classList.remove('visible');
     return;
   }
   const d = buffer.getChannelData(0);
@@ -1308,6 +1328,37 @@ function drawWave(buffer) {
     g.lineTo(x + 0.5, Math.abs(y2 - y1) < 1 ? y1 - 1 : y2);
   }
   g.stroke();
+  drawRuler(buffer.duration);
+}
+
+// Premiere Pro-szerű időkód: ÓÓ:PP:MM:KK (KK = képkocka, 30 fps-sel számolva)
+function formatTimecode(seconds, fps = 30) {
+  const totalFrames = Math.max(0, Math.round(seconds * fps));
+  const pad = (n) => String(n).padStart(2, '0');
+  const h = Math.floor(totalFrames / (fps * 3600));
+  const m = Math.floor(totalFrames / (fps * 60)) % 60;
+  const s = Math.floor(totalFrames / fps) % 60;
+  const f = totalFrames % fps;
+  return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
+}
+
+function niceTickStep(dur, targetCount) {
+  const steps = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10];
+  return steps.find((s) => dur / s <= targetCount) || steps[steps.length - 1];
+}
+
+function drawRuler(dur) {
+  const ruler = el('waveRuler');
+  ruler.innerHTML = '';
+  ruler.classList.add('visible');
+  const step = niceTickStep(dur, 5);
+  for (let t = 0; t <= dur + 0.0001; t += step) {
+    const tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.left = `${Math.min(100, (t / dur) * 100)}%`;
+    tick.textContent = formatTimecode(t);
+    ruler.appendChild(tick);
+  }
 }
 
 async function play() {
