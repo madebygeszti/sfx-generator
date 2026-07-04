@@ -203,6 +203,98 @@ function makeReverb(ctx, dur, decayPow) {
 
 const R = (a, b) => a + Math.random() * (b - a);
 
+// pengetett húr: harmonikus részhangok gyors, egyenként lecsengő burkolóval
+function pluckTone(ctx, t, freq, dur, gainVal, brightness, dest, detuneCents) {
+  [
+    [1, 1],
+    [2, 0.55 * brightness],
+    [3, 0.32 * brightness],
+    [4.01, 0.18 * brightness * brightness],
+    [5.02, 0.1 * brightness * brightness],
+  ].forEach(([r, relGain], i) => {
+    const o = ctx.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = freq * r;
+    o.detune.value = detuneCents;
+    const decay = Math.max(0.05, dur * (1 - i * 0.12));
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gainVal * relGain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    o.connect(g).connect(dest);
+    o.start(t);
+    o.stop(t + decay + 0.05);
+  });
+}
+
+// vont húros hangszer: detuned fűrészfogak vibratóval, lassú felfutással
+function bowedString(ctx, t, freq, dur, brightness, dest, deep) {
+  const attack = 0.09;
+  const release = 0.18;
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = (deep ? 1400 : 3000) * brightness;
+  lp.Q.value = 1.5;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.5, t + attack);
+  g.gain.setValueAtTime(0.5, t + dur);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + release);
+  lp.connect(g).connect(dest);
+
+  const vibrato = ctx.createOscillator();
+  vibrato.type = "sine";
+  vibrato.frequency.value = 5.2;
+  const vibDepth = ctx.createGain();
+  vibDepth.gain.value = 16; // cent
+  vibrato.connect(vibDepth);
+  vibrato.start(t);
+  vibrato.stop(t + dur + release + 0.1);
+
+  [0, -8, 9].forEach((cents) => {
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.value = freq;
+    o.detune.value = cents;
+    vibDepth.connect(o.detune);
+    o.connect(lp);
+    o.start(t);
+    o.stop(t + dur + release + 0.1);
+  });
+}
+
+// fúvós hangszer: szinusz alaphang + szűrt zaj (levegő-zaj réteg)
+function fluteTone(ctx, t, freq, dur, brightness, dest) {
+  const attack = 0.07;
+  const release = 0.15;
+  const o = ctx.createOscillator();
+  o.type = "sine";
+  o.frequency.value = freq;
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = freq * (3 + brightness * 4);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.5, t + attack);
+  g.gain.setValueAtTime(0.5, t + dur);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + release);
+  o.connect(lp).connect(g).connect(dest);
+  o.start(t);
+  o.stop(t + dur + release + 0.05);
+
+  const ns = noiseSrc(ctx, dur + release + 0.1);
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = freq * 1.5;
+  bp.Q.value = 1.2;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.0001, t);
+  ng.gain.linearRampToValueAtTime(0.09 * brightness, t + attack);
+  ng.gain.setValueAtTime(0.09 * brightness, t + dur);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + dur + release);
+  ns.connect(bp).connect(ng).connect(dest);
+  ns.start(t);
+}
+
 /* ---------- hangkategóriák ---------- */
 
 const CATEGORIES = [
@@ -974,6 +1066,63 @@ const CATEGORIES = [
         beep(0, 900, 1400, 0.08 * scale, 0.4);
         beep(0.1 * scale, 1200, 900, 0.06 * scale, 0.35);
         beep(0.19 * scale, 1600, 2000, 0.1 * scale, 0.4);
+      }
+    },
+  },
+  {
+    id: "instruments",
+    name: "Instruments",
+    desc: "Hangszerhangok — zongora, gitár, vonósok, dobok, fuvola",
+    variants: ["Piano", "Guitar", "Violin", "Cello", "Drums", "Flute"],
+    sliders: [
+      { id: "len", label: "Hossz", min: 0.3, max: 3, step: 0.05, def: 1.2, unit: "s" },
+      { id: "pitch", label: "Hangmagasság", min: 0.5, max: 2, step: 0.05, def: 1 },
+      { id: "tone", label: "Hangszín", min: 0.3, max: 1.5, step: 0.05, def: 1 },
+    ],
+    duration: (p) => {
+      if (p.variant === "Guitar") return p.len + 0.6;
+      if (p.variant === "Piano") return p.len + 0.4;
+      if (p.variant === "Drums") return p.len + 0.3;
+      return p.len + 0.35;
+    },
+    build: (ctx, p) => {
+      const v = p.variant;
+      const L = p.len;
+      const bright = p.tone;
+
+      if (v === "Piano") {
+        const f0 = 261.63 * p.pitch;
+        const dur = L + 0.2;
+        [
+          [1, 0.5],
+          [2, 0.28 * bright],
+          [3, 0.16 * bright],
+          [4, 0.1 * bright * bright],
+          [5, 0.06 * bright * bright],
+          [6.02, 0.04 * bright * bright],
+        ].forEach(([r, g]) => {
+          partial(ctx, 0.01, f0 * r, dur * (1 - (r - 1) * 0.08), g, ctx.destination, "sine");
+        });
+        noiseBurst(ctx, 0, 0.012, f0 * 3, 3, 0.12 + 0.08 * bright, ctx.destination);
+      } else if (v === "Guitar") {
+        const f0 = 196 * p.pitch;
+        pluckTone(ctx, 0.01, f0, L + 0.3, 0.5, bright, ctx.destination, -3);
+        pluckTone(ctx, 0.012, f0, L + 0.25, 0.35, bright, ctx.destination, 3);
+        noiseBurst(ctx, 0.005, 0.012, f0 * 4, 2, 0.35, ctx.destination);
+      } else if (v === "Violin") {
+        bowedString(ctx, 0, 440 * p.pitch, L, bright, ctx.destination, false);
+      } else if (v === "Cello") {
+        bowedString(ctx, 0, 110 * p.pitch, L, bright, ctx.destination, true);
+      } else if (v === "Flute") {
+        fluteTone(ctx, 0, 523.25 * p.pitch, L, bright, ctx.destination);
+      } else {
+        const scale = Math.max(0.15, L / 4);
+        const t0 = 0.02;
+        thump(ctx, t0, 150 * p.pitch, 50, 0.12, 1.0, ctx.destination);
+        noiseBurst(ctx, t0 + scale, 0.02, 8000 * bright, 2, 0.35, ctx.destination);
+        thump(ctx, t0 + scale * 2, 130 * p.pitch, 55, 0.06, 0.5, ctx.destination);
+        noiseBurst(ctx, t0 + scale * 2, 0.08, 1800, 1.2, 0.7, ctx.destination);
+        noiseBurst(ctx, t0 + scale * 3, 0.02, 8000 * bright, 2, 0.35, ctx.destination);
       }
     },
   },
