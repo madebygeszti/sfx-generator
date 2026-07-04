@@ -118,10 +118,26 @@
   }
   .feedback-panel { margin-top: 20px; }
   .feedback-panel .panel-desc { margin-bottom: 18px; }
-  .fb-grid { display: grid; gap: 14px; margin-bottom: 18px; }
+  .fb-progress {
+    height: 4px; border-radius: 999px; background: #221b12;
+    overflow: hidden; margin-bottom: 22px;
+  }
+  .fb-progress-bar {
+    height: 100%; width: 0%; background: #ff5a1f;
+    box-shadow: 0 0 10px #ff5a1f88; transition: width .25s ease;
+  }
+  .fb-steps { position: relative; min-height: 76px; margin-bottom: 18px; }
+  .fb-step {
+    display: none; animation: fbFadeIn .25s ease;
+  }
+  .fb-step.active { display: block; }
+  @keyframes fbFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .fb-field { display: grid; gap: 6px; }
   .fb-field span {
-    font-size: 12px; font-weight: 600; color: #b3a696;
+    font-size: 16px; font-weight: 700; color: #ece7e0;
   }
   .fb-field input, .fb-field select, .fb-field textarea {
     width: 100%; padding: 10px 12px; border-radius: 10px;
@@ -131,6 +147,13 @@
   .fb-field input:focus, .fb-field select:focus, .fb-field textarea:focus {
     outline: none; border-color: #ff5a1f;
   }
+  .fb-nav { display: flex; align-items: center; gap: 10px; }
+  .fb-back {
+    border: none; background: transparent; color: #8d8175;
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 10px 4px; visibility: hidden;
+  }
+  #fbNext, #btnFeedbackSubmit { flex: 1 1 auto; }
   .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; color: #ff8a50; }
 </style>
 </head>
@@ -165,67 +188,84 @@
     </div>
   </div>
   <div class="panel feedback-panel">
-    <div class="panel-title">Visszajelzés</div>
-    <div class="panel-desc">Segíts jobbá tenni az eszközt — fél perc az egész.</div>
+    <div class="panel-title">Írj visszajelzést</div>
+    <div class="panel-desc">Segíts a lehető legjobbá tenni a generátort!</div>
+    <div class="fb-progress"><div class="fb-progress-bar" id="fbProgressBar"></div></div>
     <!-- Beküldés Formspree-n keresztül. Aktiváláshoz: hozz létre egy ingyenes
          űrlapot a formspree.io oldalon, majd a kapott form ID-t írd be az
          action URL-be a "REPLACE_WITH_FORM_ID" helyére. -->
     <form id="feedbackForm" action="https://formspree.io/f/REPLACE_WITH_FORM_ID" method="POST">
-      <div class="fb-grid">
-        <label class="fb-field">
-          <span>Email címed</span>
-          <input type="email" name="email" required placeholder="te@email.com">
-        </label>
-        <label class="fb-field">
-          <span>Mivel foglalkozol?</span>
-          <select name="foglalkozas" required>
-            <option value="">Válassz...</option>
-            <option>Videószerkesztő / vágó</option>
-            <option>Content creator / influencer</option>
-            <option>Marketing / ügynökség</option>
-            <option>Hobbiból csinálom</option>
-            <option>Diák</option>
-            <option>Egyéb</option>
-          </select>
-        </label>
-        <label class="fb-field">
-          <span>Mire használod a hangeffekteket?</span>
-          <select name="felhasznalas" required>
-            <option value="">Válassz...</option>
-            <option>YouTube videó</option>
-            <option>TikTok / Reels / Shorts</option>
-            <option>Hirdetés / reklám</option>
-            <option>Podcast</option>
-            <option>Egyéb</option>
-          </select>
-        </label>
-        <label class="fb-field">
-          <span>Milyen gyakran készítesz videótartalmat?</span>
-          <select name="gyakorisag" required>
-            <option value="">Válassz...</option>
-            <option>Naponta</option>
-            <option>Hetente</option>
-            <option>Havonta</option>
-            <option>Ritkábban</option>
-          </select>
-        </label>
-        <label class="fb-field">
-          <span>Melyik vágóprogramot használod?</span>
-          <select name="vagoprogram" required>
-            <option value="">Válassz...</option>
-            <option>Premiere Pro</option>
-            <option>DaVinci Resolve</option>
-            <option>CapCut</option>
-            <option>Final Cut Pro</option>
-            <option>Egyéb</option>
-          </select>
-        </label>
-        <label class="fb-field">
-          <span>Mit javítanál az oldalon?</span>
-          <textarea name="visszajelzes" rows="4" placeholder="Írd meg bátran..."></textarea>
-        </label>
+      <div class="fb-steps" id="fbSteps">
+        <div class="fb-step" data-step="0">
+          <label class="fb-field">
+            <span>Email címed</span>
+            <input type="email" name="email" required placeholder="te@email.com">
+          </label>
+        </div>
+        <div class="fb-step" data-step="1">
+          <label class="fb-field">
+            <span>Mivel foglalkozol?</span>
+            <select name="foglalkozas" required>
+              <option value="">Válassz...</option>
+              <option>Videószerkesztő / vágó</option>
+              <option>Content creator / influencer</option>
+              <option>Marketing / ügynökség</option>
+              <option>Hobbiból csinálom</option>
+              <option>Diák</option>
+              <option>Egyéb</option>
+            </select>
+          </label>
+        </div>
+        <div class="fb-step" data-step="2">
+          <label class="fb-field">
+            <span>Mire használod a hangeffekteket?</span>
+            <select name="felhasznalas" required>
+              <option value="">Válassz...</option>
+              <option>YouTube videó</option>
+              <option>TikTok / Reels / Shorts</option>
+              <option>Hirdetés / reklám</option>
+              <option>Podcast</option>
+              <option>Egyéb</option>
+            </select>
+          </label>
+        </div>
+        <div class="fb-step" data-step="3">
+          <label class="fb-field">
+            <span>Milyen gyakran készítesz videótartalmat?</span>
+            <select name="gyakorisag" required>
+              <option value="">Válassz...</option>
+              <option>Naponta</option>
+              <option>Hetente</option>
+              <option>Havonta</option>
+              <option>Ritkábban</option>
+            </select>
+          </label>
+        </div>
+        <div class="fb-step" data-step="4">
+          <label class="fb-field">
+            <span>Melyik vágóprogramot használod?</span>
+            <select name="vagoprogram" required>
+              <option value="">Válassz...</option>
+              <option>Premiere Pro</option>
+              <option>DaVinci Resolve</option>
+              <option>CapCut</option>
+              <option>Final Cut Pro</option>
+              <option>Egyéb</option>
+            </select>
+          </label>
+        </div>
+        <div class="fb-step" data-step="5">
+          <label class="fb-field">
+            <span>Mit javítanál az oldalon?</span>
+            <textarea name="visszajelzes" rows="4" placeholder="Írd meg bátran..."></textarea>
+          </label>
+        </div>
       </div>
-      <button type="submit" class="btn btn-play" id="btnFeedbackSubmit">Küldés</button>
+      <div class="fb-nav">
+        <button type="button" class="fb-back" id="fbBack">← Vissza</button>
+        <button type="button" class="btn btn-play" id="fbNext">Tovább →</button>
+        <button type="submit" class="btn btn-play" id="btnFeedbackSubmit">Küldés</button>
+      </div>
       <div class="fb-status" id="fbStatus"></div>
     </form>
   </div>
@@ -1524,6 +1564,46 @@ el('btnRand').onclick = randomize;
 el('btnDl').onclick = download;
 renderAll();
 
+const fbSteps = [...document.querySelectorAll('.fb-step')];
+const fbBack = el('fbBack');
+const fbNext = el('fbNext');
+const fbSubmitBtn = el('btnFeedbackSubmit');
+const fbProgressBar = el('fbProgressBar');
+let fbCurrent = 0;
+
+function fbUpdateUI() {
+  fbSteps.forEach((s, i) => s.classList.toggle('active', i === fbCurrent));
+  fbBack.style.visibility = fbCurrent === 0 ? 'hidden' : 'visible';
+  const isLast = fbCurrent === fbSteps.length - 1;
+  fbNext.style.display = isLast ? 'none' : 'inline-block';
+  fbSubmitBtn.style.display = isLast ? 'inline-block' : 'none';
+  fbProgressBar.style.width = `${((fbCurrent + 1) / fbSteps.length) * 100}%`;
+  const field = fbSteps[fbCurrent].querySelector('input, select, textarea');
+  if (field) field.focus();
+}
+
+function fbCurrentValid() {
+  const field = fbSteps[fbCurrent].querySelector('input, select, textarea');
+  return !field || field.reportValidity();
+}
+
+fbNext.addEventListener('click', () => {
+  if (!fbCurrentValid()) return;
+  fbCurrent = Math.min(fbSteps.length - 1, fbCurrent + 1);
+  fbUpdateUI();
+});
+fbBack.addEventListener('click', () => {
+  fbCurrent = Math.max(0, fbCurrent - 1);
+  fbUpdateUI();
+});
+el('feedbackForm').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    if (fbCurrent < fbSteps.length - 1) fbNext.click();
+  }
+});
+fbUpdateUI();
+
 const feedbackForm = el('feedbackForm');
 feedbackForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1540,6 +1620,8 @@ feedbackForm.addEventListener('submit', async (e) => {
     if (res.ok) {
       status.textContent = 'Köszönjük a visszajelzést!';
       feedbackForm.reset();
+      fbCurrent = 0;
+      fbUpdateUI();
     } else {
       status.textContent = 'Hiba történt, próbáld újra.';
     }
