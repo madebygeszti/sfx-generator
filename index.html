@@ -111,7 +111,7 @@
       <button class="btn btn-dl" id="btnDl">⬇ WAV letöltés</button>
     </div>
   </div>
-  <footer>44,1 kHz · 16 bit sztereó WAV · A generált hangok szabadon felhasználhatók és értékesíthetők</footer>
+  <footer>A hangokat szabadon felhasználhatod a videóidban!</footer>
 </div>
 <script>
 const SR = 44100;
@@ -804,6 +804,176 @@ const CATEGORIES = [
         [1, 1.26, 1.5, 2].forEach((m, i) =>
           tone(0.02 + (i * 0.09) / p.speed, base * m, 0.35, 0.45)
         );
+      }
+    },
+  },
+  {
+    id: "futuristic",
+    name: "Futuristic",
+    desc: "Sci-fi hangeffektek — lézerek, energiamezők, HUD-ok, teleportálás",
+    variants: ["Laser", "Energy Charge", "Teleport", "Force Field", "Hologram", "Sci-Fi UI"],
+    sliders: [
+      { id: "len", label: "Hossz", min: 0.2, max: 2.5, step: 0.05, def: 0.6, unit: "s" },
+      { id: "pitch", label: "Hangmagasság", min: 0.5, max: 2, step: 0.05, def: 1 },
+      { id: "energy", label: "Energia", min: 0.3, max: 1.5, step: 0.05, def: 1 },
+    ],
+    duration: (p) => {
+      if (p.variant === "Force Field") return p.len + 1.3;
+      if (p.variant === "Energy Charge" || p.variant === "Teleport") return p.len + 0.3;
+      return p.len + 0.15;
+    },
+    build: (ctx, p) => {
+      const v = p.variant;
+      const L = p.len;
+
+      if (v === "Laser") {
+        const o = ctx.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(3200 * p.pitch, 0);
+        o.frequency.exponentialRampToValueAtTime(180 * p.pitch, L * 0.8);
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.setValueAtTime(6000, 0);
+        lp.frequency.exponentialRampToValueAtTime(800, L);
+        lp.Q.value = 4 * p.energy;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, 0);
+        g.gain.exponentialRampToValueAtTime(0.7 * p.energy, 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, L * 0.85);
+        o.connect(lp).connect(g).connect(ctx.destination);
+        o.start(0);
+        o.stop(L + 0.1);
+        noiseBurst(ctx, 0, 0.01, 5000 * p.pitch, 3, 0.2 * p.energy, ctx.destination);
+      } else if (v === "Energy Charge") {
+        const o = ctx.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(90 * p.pitch, 0);
+        o.frequency.exponentialRampToValueAtTime(1400 * p.pitch, L);
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.setValueAtTime(300, 0);
+        lp.frequency.exponentialRampToValueAtTime(4000 * p.energy, L);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.001, 0);
+        g.gain.exponentialRampToValueAtTime(0.7 * p.energy, L * 0.95);
+        g.gain.linearRampToValueAtTime(0.0001, L + 0.05);
+        o.connect(lp).connect(g).connect(ctx.destination);
+        o.start(0);
+        o.stop(L + 0.2);
+
+        const o2 = ctx.createOscillator();
+        o2.type = "sine";
+        o2.frequency.setValueAtTime(270 * p.pitch, 0);
+        o2.frequency.exponentialRampToValueAtTime(4200 * p.pitch, L);
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(0.001, 0);
+        g2.gain.exponentialRampToValueAtTime(0.25 * p.energy, L * 0.95);
+        g2.gain.linearRampToValueAtTime(0.0001, L + 0.05);
+        o2.connect(g2).connect(ctx.destination);
+        o2.start(0);
+        o2.stop(L + 0.2);
+
+        noiseBurst(ctx, L * 0.95, 0.08, 3000 * p.pitch, 2, 0.5 * p.energy, ctx.destination);
+      } else if (v === "Teleport") {
+        const src = noiseSrc(ctx, L + 0.1);
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.Q.value = 6 * p.energy;
+        bp.frequency.setValueAtTime(400 * p.pitch, 0);
+        bp.frequency.exponentialRampToValueAtTime(6000 * p.pitch, L * 0.5);
+        bp.frequency.exponentialRampToValueAtTime(200 * p.pitch, L);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, 0);
+        g.gain.exponentialRampToValueAtTime(0.6 * p.energy, L * 0.45);
+        g.gain.exponentialRampToValueAtTime(0.0001, L);
+        src.connect(bp).connect(g).connect(ctx.destination);
+        src.start(0);
+
+        [1, 1.5, 2.01].forEach((r) => {
+          const o = ctx.createOscillator();
+          o.type = "sine";
+          o.frequency.setValueAtTime(500 * r * p.pitch, 0);
+          o.frequency.exponentialRampToValueAtTime(3000 * r * p.pitch, L * 0.5);
+          o.frequency.exponentialRampToValueAtTime(150 * r * p.pitch, L);
+          const og = ctx.createGain();
+          og.gain.setValueAtTime(0.0001, 0);
+          og.gain.exponentialRampToValueAtTime(0.18 * p.energy, L * 0.45);
+          og.gain.exponentialRampToValueAtTime(0.0001, L);
+          o.connect(og).connect(ctx.destination);
+          o.start(0);
+          o.stop(L + 0.15);
+        });
+      } else if (v === "Force Field") {
+        const verb = makeReverb(ctx, 1.2, 2.2);
+        const wet = ctx.createGain();
+        wet.gain.value = 0.3;
+        verb.connect(wet).connect(ctx.destination);
+        const out = (n) => { n.connect(ctx.destination); n.connect(verb); };
+
+        const o = ctx.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.value = 65 * p.pitch;
+        const lfo = ctx.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 5 * p.energy;
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = 300;
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 500;
+        lp.Q.value = 8;
+        lfo.connect(lfoGain).connect(lp.frequency);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, 0);
+        g.gain.linearRampToValueAtTime(0.5 * p.energy, 0.1);
+        g.gain.setValueAtTime(0.5 * p.energy, Math.max(0.1, L - 0.1));
+        g.gain.linearRampToValueAtTime(0.0001, L);
+        o.connect(lp).connect(g);
+        out(g);
+        o.start(0);
+        o.stop(L + 0.1);
+        lfo.start(0);
+        lfo.stop(L + 0.1);
+      } else if (v === "Hologram") {
+        const n = Math.round(8 * p.energy + 5);
+        for (let i = 0; i < n; i++) {
+          const t = R(0, L * 0.9);
+          const f = R(600, 3200) * p.pitch;
+          partial(ctx, t, f, R(0.03, 0.09), R(0.15, 0.3), ctx.destination, "sine");
+          if (Math.random() < 0.4) noiseBurst(ctx, t, 0.01, f * 2, 4, 0.15, ctx.destination);
+        }
+        const o = ctx.createOscillator();
+        o.type = "sine";
+        o.frequency.value = 220 * p.pitch;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, 0);
+        g.gain.linearRampToValueAtTime(0.12 * p.energy, 0.05);
+        g.gain.setValueAtTime(0.12 * p.energy, Math.max(0.05, L - 0.05));
+        g.gain.linearRampToValueAtTime(0.0001, L);
+        o.connect(g).connect(ctx.destination);
+        o.start(0);
+        o.stop(L + 0.05);
+      } else {
+        const scale = L / 0.6;
+        const beep = (t, f0, f1, dur, gv) => {
+          const o = ctx.createOscillator();
+          o.type = "square";
+          o.frequency.setValueAtTime(f0 * p.pitch, t);
+          o.frequency.exponentialRampToValueAtTime(f1 * p.pitch, t + dur);
+          const lp = ctx.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.frequency.value = 4000;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(gv * p.energy, t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(lp).connect(g).connect(ctx.destination);
+          o.start(t);
+          o.stop(t + dur + 0.02);
+        };
+        beep(0, 900, 1400, 0.08 * scale, 0.4);
+        beep(0.1 * scale, 1200, 900, 0.06 * scale, 0.35);
+        beep(0.19 * scale, 1600, 2000, 0.1 * scale, 0.4);
       }
     },
   },
