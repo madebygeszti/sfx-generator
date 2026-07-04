@@ -1621,7 +1621,7 @@ feedbackForm.addEventListener('submit', async (e) => {
       headers: { Accept: 'application/json' },
     });
     if (res.ok) {
-      status.textContent = 'Köszönjük a visszajelzést!';
+      status.textContent = 'Köszi a visszajelzést!';
       feedbackForm.reset();
       fbCurrent = 0;
       fbUpdateUI();
