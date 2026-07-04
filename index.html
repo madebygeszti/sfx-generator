@@ -157,6 +157,20 @@
   }
   #fbNext, #btnFeedbackSubmit { min-width: 200px; }
   .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; color: #ff8a50; text-align: center; }
+  .cta-panel { margin-top: 20px; text-align: center; }
+  .cta-text {
+    font-size: 20px; font-weight: 700; line-height: 1.45;
+    color: #f5f0e6; margin-bottom: 24px;
+  }
+  .cta-btn {
+    display: inline-block; padding: 18px 36px; border-radius: 14px;
+    background: linear-gradient(135deg, #ffe066, #ffc300);
+    color: #1a1400; font-weight: 800; font-size: 17px;
+    text-decoration: none; letter-spacing: 0.01em;
+    box-shadow: 0 0 30px #ffc30066;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 0 40px #ffc30099; }
 </style>
 </head>
 <body>
@@ -268,6 +282,10 @@
       </div>
       <div class="fb-status" id="fbStatus"></div>
     </form>
+  </div>
+  <div class="panel cta-panel">
+    <p class="cta-text">Ha szeretnél profin megtanulni videót vágni és több pénzt keresni vagy időt spórolni, akkor csatlakozz az AI Mastermind közösségbe, ahol péntekenként személyesen segítek ezekben a Zoom-on keresztül!</p>
+    <a class="cta-btn" href="https://www.skool.com/hungary/about" target="_blank" rel="noopener noreferrer">Csatlakozom az AI Mastermindhoz →</a>
   </div>
   <footer>A hangokat szabadon felhasználhatod a videóidban!</footer>
 </div>
