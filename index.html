@@ -116,6 +116,22 @@
   @media (max-width: 640px) {
     .mobile-hint { display: block; }
   }
+  .feedback-panel { margin-top: 20px; }
+  .feedback-panel .panel-desc { margin-bottom: 18px; }
+  .fb-grid { display: grid; gap: 14px; margin-bottom: 18px; }
+  .fb-field { display: grid; gap: 6px; }
+  .fb-field span {
+    font-size: 12px; font-weight: 600; color: #b3a696;
+  }
+  .fb-field input, .fb-field select, .fb-field textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid #2e2618; background: #14100c; color: #ece7e0;
+    font-family: inherit; font-size: 14px; resize: vertical;
+  }
+  .fb-field input:focus, .fb-field select:focus, .fb-field textarea:focus {
+    outline: none; border-color: #ff5a1f;
+  }
+  .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; color: #ff8a50; }
 </style>
 </head>
 <body>
@@ -147,6 +163,71 @@
       <button class="btn btn-rand" id="btnRand">🎲 Véletlen variáció</button>
       <button class="btn btn-dl" id="btnDl">⬇ WAV letöltés</button>
     </div>
+  </div>
+  <div class="panel feedback-panel">
+    <div class="panel-title">Visszajelzés</div>
+    <div class="panel-desc">Segíts jobbá tenni az eszközt — fél perc az egész.</div>
+    <!-- Beküldés Formspree-n keresztül. Aktiváláshoz: hozz létre egy ingyenes
+         űrlapot a formspree.io oldalon, majd a kapott form ID-t írd be az
+         action URL-be a "REPLACE_WITH_FORM_ID" helyére. -->
+    <form id="feedbackForm" action="https://formspree.io/f/REPLACE_WITH_FORM_ID" method="POST">
+      <div class="fb-grid">
+        <label class="fb-field">
+          <span>Email címed</span>
+          <input type="email" name="email" required placeholder="te@email.com">
+        </label>
+        <label class="fb-field">
+          <span>Mivel foglalkozol?</span>
+          <select name="foglalkozas" required>
+            <option value="">Válassz...</option>
+            <option>Videószerkesztő / vágó</option>
+            <option>Content creator / influencer</option>
+            <option>Marketing / ügynökség</option>
+            <option>Hobbiból csinálom</option>
+            <option>Diák</option>
+            <option>Egyéb</option>
+          </select>
+        </label>
+        <label class="fb-field">
+          <span>Mire használod a hangeffekteket?</span>
+          <select name="felhasznalas" required>
+            <option value="">Válassz...</option>
+            <option>YouTube videó</option>
+            <option>TikTok / Reels / Shorts</option>
+            <option>Hirdetés / reklám</option>
+            <option>Podcast</option>
+            <option>Egyéb</option>
+          </select>
+        </label>
+        <label class="fb-field">
+          <span>Milyen gyakran készítesz videótartalmat?</span>
+          <select name="gyakorisag" required>
+            <option value="">Válassz...</option>
+            <option>Naponta</option>
+            <option>Hetente</option>
+            <option>Havonta</option>
+            <option>Ritkábban</option>
+          </select>
+        </label>
+        <label class="fb-field">
+          <span>Melyik vágóprogramot használod?</span>
+          <select name="vagoprogram" required>
+            <option value="">Válassz...</option>
+            <option>Premiere Pro</option>
+            <option>DaVinci Resolve</option>
+            <option>CapCut</option>
+            <option>Final Cut Pro</option>
+            <option>Egyéb</option>
+          </select>
+        </label>
+        <label class="fb-field">
+          <span>Mit javítanál az oldalon?</span>
+          <textarea name="visszajelzes" rows="4" placeholder="Írd meg bátran..."></textarea>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-play" id="btnFeedbackSubmit">Küldés</button>
+      <div class="fb-status" id="fbStatus"></div>
+    </form>
   </div>
   <footer>A hangokat szabadon felhasználhatod a videóidban!</footer>
 </div>
@@ -1442,6 +1523,31 @@ el('btnPlay').onclick = play;
 el('btnRand').onclick = randomize;
 el('btnDl').onclick = download;
 renderAll();
+
+const feedbackForm = el('feedbackForm');
+feedbackForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const status = el('fbStatus');
+  const btn = el('btnFeedbackSubmit');
+  btn.disabled = true;
+  status.textContent = 'Küldés…';
+  try {
+    const res = await fetch(feedbackForm.action, {
+      method: 'POST',
+      body: new FormData(feedbackForm),
+      headers: { Accept: 'application/json' },
+    });
+    if (res.ok) {
+      status.textContent = 'Köszönjük a visszajelzést!';
+      feedbackForm.reset();
+    } else {
+      status.textContent = 'Hiba történt, próbáld újra.';
+    }
+  } catch (err) {
+    status.textContent = 'Hiba történt, próbáld újra.';
+  }
+  btn.disabled = false;
+});
 </script>
 </body>
 </html>
