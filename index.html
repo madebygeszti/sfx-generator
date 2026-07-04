@@ -798,51 +798,70 @@ const CATEGORIES = [
     id: "camera",
     name: "Camera Shutter",
     desc: "Fotó pillanatok, before/after, portfolió",
-    variants: ["DSLR", "Mirrorless", "Film Camera", "Phone", "Burst Mode"],
+    variants: ["Shutter Click 1", "Shutter Click 2", "Flash", "Shutter + Flash Combo", "Burst Mode"],
     sliders: [
       { id: "pitch", label: "Hangmagasság", min: 0.6, max: 1.6, step: 0.05, def: 1 },
       { id: "mech", label: "Mechanikusság", min: 0.3, max: 1.5, step: 0.05, def: 1 },
     ],
     duration: (p) =>
-      ({ DSLR: 0.4, Mirrorless: 0.35, "Film Camera": 1.0, Phone: 0.3, "Burst Mode": 1.1 }[
-        p.variant
-      ]),
+      ({
+        "Shutter Click 1": 0.35,
+        "Shutter Click 2": 0.2,
+        Flash: 0.45,
+        "Shutter + Flash Combo": 0.4,
+        "Burst Mode": 0.75,
+      }[p.variant]),
     build: (ctx, p) => {
       const v = p.variant;
-      const shutter = (t, soft = false) => {
-        noiseBurst(ctx, t, 0.01, 3200 * p.pitch, 2.5, soft ? 0.4 : 0.7 * p.mech, ctx.destination);
-        thump(ctx, t, 220 * p.pitch, 100, 0.03, 0.3 * p.mech, ctx.destination);
-        noiseBurst(ctx, t + 0.065, 0.02, 1600 * p.pitch, 2, soft ? 0.5 : 0.85 * p.mech, ctx.destination);
-        thump(ctx, t + 0.065, 180 * p.pitch, 80, 0.05, 0.4 * p.mech, ctx.destination);
+      const M = p.mech;
+
+      // mély, két ütemű mechanikus kattanás (tükör fel + zárszárny)
+      const click1 = (t) => {
+        noiseBurst(ctx, t, 0.012, 3600 * p.pitch, 2.5, 0.55 * M, ctx.destination);
+        thump(ctx, t, 220 * p.pitch, 90, 0.03, 0.3 * M, ctx.destination);
+        noiseBurst(ctx, t + 0.05, 0.008, 2400 * p.pitch, 2, 0.18 * M, ctx.destination);
+        noiseBurst(ctx, t + 0.14, 0.016, 3400 * p.pitch, 2.2, 0.75 * M, ctx.destination);
+        thump(ctx, t + 0.14, 170 * p.pitch, 70, 0.05, 0.4 * M, ctx.destination);
       };
-      if (v === "DSLR") shutter(0.02);
-      else if (v === "Mirrorless") {
-        partial(ctx, 0.02, 2200 * p.pitch, 0.05, 0.15, ctx.destination);
-        noiseBurst(ctx, 0.08, 0.018, 2400 * p.pitch, 2.5, 0.5 * p.mech, ctx.destination);
-      } else if (v === "Film Camera") {
-        shutter(0.02);
-        let t = 0.28;
-        for (let i = 0; i < 8; i++) {
-          noiseBurst(ctx, t, 0.012, (i % 2 ? 2600 : 3100) * p.pitch, 3, 0.35 * p.mech, ctx.destination);
-          t += 0.055;
-        }
-      } else if (v === "Phone") {
-        const pop = (t, f0, f1) => {
-          const o = ctx.createOscillator();
-          o.type = "sine";
-          o.frequency.setValueAtTime(f0 * p.pitch, t);
-          o.frequency.exponentialRampToValueAtTime(f1 * p.pitch, t + 0.04);
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0.6, t);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-          o.connect(g).connect(ctx.destination);
-          o.start(t);
-          o.stop(t + 0.1);
-        };
-        pop(0.02, 1300, 700);
-        pop(0.07, 950, 550);
+      // éles, magas, egyetlen kattanás
+      const click2 = (t, gain = 1) => {
+        noiseBurst(ctx, t, 0.008, 9500 * p.pitch, 3.5, 0.7 * M * gain, ctx.destination);
+        partial(ctx, t, 6200 * p.pitch, 0.02, 0.12 * M * gain, ctx.destination);
+        thump(ctx, t, 260 * p.pitch, 120, 0.02, 0.15 * M * gain, ctx.destination);
+      };
+      // kondenzátor-feltöltés nyekergés + fényes vaku-pukkanás
+      const flash = (t) => {
+        const o = ctx.createOscillator();
+        o.type = "triangle";
+        o.frequency.setValueAtTime(750 * p.pitch, t);
+        o.frequency.exponentialRampToValueAtTime(2200 * p.pitch, t + 0.2);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.18);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.21);
+        o.connect(g).connect(ctx.destination);
+        o.start(t);
+        o.stop(t + 0.22);
+
+        noiseBurst(ctx, t + 0.2, 0.02, 6000 * p.pitch, 1.4, 0.85 * M, ctx.destination);
+        thump(ctx, t + 0.2, 160 * p.pitch, 60, 0.05, 0.4 * M, ctx.destination);
+        partial(ctx, t + 0.2, 4200 * p.pitch, 0.12, 0.1, ctx.destination);
+      };
+      // csak a pukkanás rész (kattanás után azonnal, zár+vaku kombó)
+      const flashPop = (t) => {
+        noiseBurst(ctx, t, 0.02, 6200 * p.pitch, 1.4, 0.8 * M, ctx.destination);
+        thump(ctx, t, 160 * p.pitch, 60, 0.05, 0.35 * M, ctx.destination);
+        partial(ctx, t, 4200 * p.pitch, 0.14, 0.1, ctx.destination);
+      };
+
+      if (v === "Shutter Click 1") click1(0.02);
+      else if (v === "Shutter Click 2") click2(0.02);
+      else if (v === "Flash") flash(0);
+      else if (v === "Shutter + Flash Combo") {
+        click1(0.02);
+        flashPop(0.06);
       } else {
-        for (let i = 0; i < 5; i++) shutter(0.02 + i * 0.19, i > 0);
+        for (let i = 0; i < 6; i++) click2(0.02 + i * 0.11, i === 0 ? 1 : 0.8);
       }
     },
   },
