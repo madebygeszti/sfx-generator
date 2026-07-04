@@ -153,7 +153,7 @@
   .fb-back {
     border: none; background: transparent; color: #8d8175;
     font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-    padding: 10px 4px; visibility: hidden;
+    padding: 10px 4px; display: none;
   }
   #fbNext, #btnFeedbackSubmit { min-width: 200px; }
   .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; color: #ff8a50; text-align: center; }
@@ -1591,7 +1591,7 @@ let fbCurrent = 0;
 
 function fbUpdateUI() {
   fbSteps.forEach((s, i) => s.classList.toggle('active', i === fbCurrent));
-  fbBack.style.visibility = fbCurrent === 0 ? 'hidden' : 'visible';
+  fbBack.style.display = fbCurrent === 0 ? 'none' : 'inline-block';
   const isLast = fbCurrent === fbSteps.length - 1;
   fbNext.style.display = isLast ? 'none' : 'inline-block';
   fbSubmitBtn.style.display = isLast ? 'inline-block' : 'none';
