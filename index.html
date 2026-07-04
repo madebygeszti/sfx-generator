@@ -116,7 +116,8 @@
   @media (max-width: 640px) {
     .mobile-hint { display: block; }
   }
-  .feedback-panel { margin-top: 20px; }
+  .feedback-panel { margin-top: 20px; text-align: center; }
+  .feedback-panel .panel-title, .feedback-panel .panel-desc { text-align: center; }
   .feedback-panel .panel-desc { margin-bottom: 18px; }
   .fb-progress {
     height: 4px; border-radius: 999px; background: #221b12;
@@ -125,6 +126,7 @@
   .fb-progress-bar {
     height: 100%; width: 0%; background: #ff5a1f;
     box-shadow: 0 0 10px #ff5a1f88; transition: width .25s ease;
+    margin: 0 auto;
   }
   .fb-steps { position: relative; min-height: 76px; margin-bottom: 18px; }
   .fb-step {
@@ -135,26 +137,26 @@
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .fb-field { display: grid; gap: 6px; }
+  .fb-field { display: grid; gap: 6px; justify-items: center; text-align: center; }
   .fb-field span {
     font-size: 16px; font-weight: 700; color: #ece7e0;
   }
   .fb-field input, .fb-field select, .fb-field textarea {
-    width: 100%; padding: 10px 12px; border-radius: 10px;
+    width: 100%; max-width: 420px; margin: 0 auto; padding: 10px 12px; border-radius: 10px;
     border: 1px solid #2e2618; background: #14100c; color: #ece7e0;
-    font-family: inherit; font-size: 14px; resize: vertical;
+    font-family: inherit; font-size: 14px; resize: vertical; text-align: center;
   }
   .fb-field input:focus, .fb-field select:focus, .fb-field textarea:focus {
     outline: none; border-color: #ff5a1f;
   }
-  .fb-nav { display: flex; align-items: center; gap: 10px; }
+  .fb-nav { display: flex; align-items: center; justify-content: center; gap: 10px; }
   .fb-back {
     border: none; background: transparent; color: #8d8175;
     font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
     padding: 10px 4px; visibility: hidden;
   }
-  #fbNext, #btnFeedbackSubmit { flex: 1 1 auto; }
-  .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; color: #ff8a50; }
+  #fbNext, #btnFeedbackSubmit { min-width: 200px; }
+  .fb-status { font-size: 13px; margin-top: 10px; min-height: 18px; color: #ff8a50; text-align: center; }
 </style>
 </head>
 <body>
