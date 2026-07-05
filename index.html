@@ -106,6 +106,12 @@
   @media (max-width: 640px) {
     .mobile-hint { display: block; }
   }
+  .iab-banner {
+    display: none; margin-bottom: 20px; padding: 14px 16px;
+    border: 1px solid #bcac8c; border-radius: 12px;
+    background: #bcac8c14; color: #ece7e0;
+    font-size: 13px; line-height: 1.5; text-align: center;
+  }
   .feedback-panel { margin-top: 20px; text-align: center; }
   .feedback-panel .panel-title, .feedback-panel .panel-desc { text-align: center; }
   .feedback-panel .panel-desc { margin-bottom: 18px; }
@@ -165,6 +171,7 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="iab-banner" id="iabBanner">📲 Úgy tűnik, egy alkalmazáson belüli böngészőből (pl. Instagram, Messenger) nyitottad meg ezt az oldalt. A hanglejátszás itt működik, de a WAV letöltéshez nyisd meg az oldalt a telefonod rendes böngészőjében — keresd a jobb felső ⋮ / ··· menüben a „Megnyitás böngészőben” opciót.</div>
   <header>
     <div class="brand-star" aria-hidden="true">✦</div>
     <h1>SFX GENERÁTOR</h1>
@@ -1633,6 +1640,14 @@ feedbackForm.addEventListener('submit', async (e) => {
   }
   btn.disabled = false;
 });
+
+// appon belüli böngészők (Instagram, Messenger, stb.) gyakran nem engedik a
+// fájlletöltést, ezért erről külön figyelmeztetjük a látogatót
+(function () {
+  const ua = navigator.userAgent || '';
+  const isInAppBrowser = /Instagram|FBAN|FBAV|FB_IAB|Line\/|MicroMessenger|TikTok|musical_ly/i.test(ua);
+  if (isInAppBrowser) el('iabBanner').style.display = 'block';
+})();
 </script>
 </body>
 </html>
